@@ -1,10 +1,10 @@
 defmodule ReduceComprehensions do
-  defmacro reduce({:for, meta, args}) do
-    {acc, block, comprehension} = extract_acc(args)
+  defmacro reduce({:for, meta, args}, block) do
+    {acc, comprehension} = extract_acc(args)
     vars = extract_vars(comprehension)
     [acc: {:=, _, [acc_var, acc_start]}] = acc
     vars_tuple = {:{}, [], vars}
-    for_comp = {:for, meta, things ++ [[do: b]]}
+    for_comp = {:for, meta, comprehension ++ [[do: vars_tuple]]}
     [do: reduce_fun] = block
     quote do
       Enum.reduce(unquote(for_comp), unquote(acc_start), fn(unquote(vars_tuple),unquote(acc_var)) ->
@@ -18,11 +18,7 @@ defmodule ReduceComprehensions do
         ([acc: _]) -> true
         _ -> false
       end)
-    block = Enum.find(clauses, fn
-        ([do: _]) -> true
-        _ -> false
-      end)
-    {acc, block, List.delete(clauses, acc) |> List.delete(block)}
+    {acc, List.delete(clauses, acc)}
   end
 
   defp extract_vars(code) do
